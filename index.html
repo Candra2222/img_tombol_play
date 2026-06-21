@@ -104,28 +104,24 @@
             background: rgba(66, 183, 42, 0.1);
         }
 
-        .upload-area input[type="file"] {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-        }
-
         .upload-icon {
             font-size: 3rem;
             margin-bottom: 15px;
             opacity: 0.7;
+            pointer-events: none;
         }
 
         .upload-text {
             font-size: 1.1rem;
             color: #e2e8f0;
+            pointer-events: none;
         }
 
         .upload-hint {
             font-size: 0.85rem;
             color: #94a3b8;
             margin-top: 8px;
+            pointer-events: none;
         }
 
         .controls {
@@ -181,6 +177,7 @@
             position: relative;
             width: 48px;
             height: 26px;
+            cursor: pointer;
         }
 
         .toggle-switch input {
@@ -327,31 +324,31 @@
 <body>
     <div class="container">
         <header>
-            <h1>🎬 Facebook Live Preview Maker</h1>
+            <h1>Facebook Live Preview Maker</h1>
             <p>Buat template foto dengan tombol play & bar pemutaran untuk preview live streaming di Facebook</p>
         </header>
 
         <div class="main-grid">
             <div class="panel">
-                <h2><span class="icon">📁</span> Upload Foto</h2>
+                <h2><span class="icon">&#128193;</span> Upload Foto</h2>
 
-                <div class="preset-buttons">
-                    <button class="preset-btn active" onclick="setRatio(1.91, this)">Facebook Post (1.91:1)</button>
-                    <button class="preset-btn" onclick="setRatio(1, this)">Square (1:1)</button>
-                    <button class="preset-btn" onclick="setRatio(0.8, this)">Portrait (4:5)</button>
-                    <button class="preset-btn" onclick="setRatio(1.77, this)">Story (9:16)</button>
+                <div class="preset-buttons" id="presetButtons">
+                    <button class="preset-btn active" data-ratio="1.91">Facebook Post (1.91:1)</button>
+                    <button class="preset-btn" data-ratio="1">Square (1:1)</button>
+                    <button class="preset-btn" data-ratio="0.8">Portrait (4:5)</button>
+                    <button class="preset-btn" data-ratio="0.5625">Story (9:16)</button>
                 </div>
 
                 <div class="upload-area" id="uploadArea">
-                    <input type="file" id="imageInput" accept="image/*">
-                    <div class="upload-icon">📷</div>
+                    <div class="upload-icon">&#128247;</div>
                     <div class="upload-text">Klik atau seret foto ke sini</div>
                     <div class="upload-hint">JPG, PNG, WEBP (Maks 10MB)</div>
                 </div>
+                <input type="file" id="imageInput" accept="image/*" style="display:none;">
 
                 <div class="controls">
                     <div class="control-group">
-                        <label>⚙️ Pengaturan Overlay</label>
+                        <label>Pengaturan Overlay</label>
                     </div>
 
                     <div class="toggle-row">
@@ -395,17 +392,17 @@
                     </div>
 
                     <div class="control-group">
-                        <label>Progress (%)</label>
+                        <label>Progress: <span id="progressLabel">35</span>%</label>
                         <input type="range" id="progressValue" min="0" max="100" value="35">
                     </div>
 
                     <div class="control-group">
-                        <label>Ukuran Tombol Play</label>
+                        <label>Ukuran Tombol Play: <span id="playSizeLabel">70</span>px</label>
                         <input type="range" id="playSize" min="40" max="120" value="70">
                     </div>
 
                     <div class="control-group">
-                        <label>Opacity Overlay</label>
+                        <label>Opacity Overlay: <span id="opacityLabel">25</span>%</label>
                         <input type="range" id="overlayOpacity" min="0" max="80" value="25">
                     </div>
 
@@ -416,14 +413,14 @@
                 </div>
 
                 <button class="btn btn-success" id="downloadBtn" disabled>
-                    💾 Download Hasil
+                    Download Hasil
                 </button>
             </div>
 
             <div class="panel">
-                <h2><span class="icon">👁️</span> Preview</h2>
+                <h2><span class="icon">&#128065;</span> Preview</h2>
                 <div class="preview-container" id="previewContainer">
-                    <span class="placeholder-text">Upload foto untuk melihat preview</span>
+                    <span class="placeholder-text" id="placeholderText">Upload foto untuk melihat preview</span>
                     <canvas id="previewCanvas" style="display:none;"></canvas>
                 </div>
                 <div class="size-info" id="sizeInfo"></div>
@@ -431,20 +428,21 @@
         </div>
 
         <div class="footer">
-            <p>💡 Tip: Gunakan rasio 1.91:1 untuk postingan Facebook feed yang optimal</p>
+            <p>Tip: Gunakan rasio 1.91:1 untuk postingan Facebook feed yang optimal</p>
         </div>
     </div>
 
     <script>
         let currentImage = null;
-        let targetRatio = 1.91; // default Facebook post
+        let targetRatio = 1.91;
+        let animationFrameId = null;
 
         const imageInput = document.getElementById('imageInput');
         const uploadArea = document.getElementById('uploadArea');
         const canvas = document.getElementById('previewCanvas');
         const ctx = canvas.getContext('2d');
         const previewContainer = document.getElementById('previewContainer');
-        const placeholderText = document.querySelector('.placeholder-text');
+        const placeholderText = document.getElementById('placeholderText');
         const downloadBtn = document.getElementById('downloadBtn');
         const sizeInfo = document.getElementById('sizeInfo');
 
@@ -459,49 +457,85 @@
         const overlayOpacity = document.getElementById('overlayOpacity');
         const progressColor = document.getElementById('progressColor');
 
-        function setRatio(ratio, btn) {
-            targetRatio = ratio;
-            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            if (currentImage) drawCanvas();
-        }
+        // Labels
+        const progressLabel = document.getElementById('progressLabel');
+        const playSizeLabel = document.getElementById('playSizeLabel');
+        const opacityLabel = document.getElementById('opacityLabel');
 
-        // Drag and drop
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file && file.type.startsWith('image/')) {
-                handleImage(file);
+        // Preset buttons
+        document.getElementById('presetButtons').addEventListener('click', function(e) {
+            if (e.target.classList.contains('preset-btn')) {
+                targetRatio = parseFloat(e.target.getAttribute('data-ratio'));
+                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                if (currentImage) drawCanvas();
             }
         });
 
-        imageInput.addEventListener('change', (e) => {
-            if (e.target.files[0]) {
+        // Upload area click
+        uploadArea.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            imageInput.click();
+        });
+
+        // File input change
+        imageInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
                 handleImage(e.target.files[0]);
             }
         });
 
+        // Drag and drop
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files && files.length > 0 && files[0].type.startsWith('image/')) {
+                handleImage(files[0]);
+            }
+        });
+
         function handleImage(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Mohon upload file gambar (JPG, PNG, WEBP)');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                alert('Ukuran file terlalu besar! Maksimal 10MB');
+                return;
+            }
+
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = function(e) {
                 currentImage = new Image();
-                currentImage.onload = () => {
+                currentImage.onload = function() {
                     placeholderText.style.display = 'none';
                     canvas.style.display = 'block';
                     downloadBtn.disabled = false;
                     drawCanvas();
                 };
+                currentImage.onerror = function() {
+                    alert('Gagal memuat gambar. Coba file lain.');
+                };
                 currentImage.src = e.target.result;
+            };
+            reader.onerror = function() {
+                alert('Gagal membaca file. Coba lagi.');
             };
             reader.readAsDataURL(file);
         }
@@ -541,7 +575,7 @@
 
             // Dark overlay
             const opacity = overlayOpacity.value / 100;
-            ctx.fillStyle = `rgba(0, 0, 0, ${opacity})`;
+            ctx.fillStyle = 'rgba(0, 0, 0, ' + opacity + ')';
             ctx.fillRect(0, 0, canvasW, canvasH);
 
             // LIVE badge
@@ -569,7 +603,7 @@
                 drawViewers(canvasW, canvasH);
             }
 
-            sizeInfo.textContent = `Ukuran: ${Math.round(canvasW)} x ${Math.round(canvasH)} px`;
+            sizeInfo.textContent = 'Ukuran: ' + Math.round(canvasW) + ' x ' + Math.round(canvasH) + ' px';
         }
 
         function drawLiveBadge(w, h) {
@@ -587,14 +621,14 @@
             // Pulsing dot
             const time = Date.now() / 1000;
             const pulse = Math.sin(time * 3) * 0.3 + 0.7;
-            ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
+            ctx.fillStyle = 'rgba(255, 255, 255, ' + pulse + ')';
             ctx.beginPath();
             ctx.arc(x + badgeH * 0.5, y + badgeH * 0.5, badgeH * 0.18, 0, Math.PI * 2);
             ctx.fill();
 
             // LIVE text
             ctx.fillStyle = '#fff';
-            ctx.font = `bold ${badgeH * 0.5}px -apple-system, BlinkMacSystemFont, sans-serif`;
+            ctx.font = 'bold ' + (badgeH * 0.5) + 'px -apple-system, BlinkMacSystemFont, sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
             ctx.fillText('LIVE', x + badgeH * 0.85, y + badgeH * 0.52);
@@ -634,4 +668,124 @@
             const barHeight = Math.max(4, h * 0.012);
             const barY = h - barHeight - Math.min(w, h) * 0.03;
             const padding = Math.min(w, h) * 0.04;
-            const barWidth = w - paddin
+            const barWidth = w - padding * 2;
+            const x = padding;
+
+            // Background bar
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+            roundRect(ctx, x, barY, barWidth, barHeight, barHeight / 2);
+            ctx.fill();
+
+            // Progress fill
+            const progress = progressValue.value / 100;
+            const fillWidth = barWidth * progress;
+            ctx.fillStyle = progressColor.value;
+            roundRect(ctx, x, barY, fillWidth, barHeight, barHeight / 2);
+            ctx.fill();
+
+            // Scrubber dot
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(x + fillWidth, barY + barHeight / 2, barHeight * 1.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawDuration(w, h) {
+            const padding = Math.min(w, h) * 0.04;
+            const fontSize = Math.max(12, Math.min(w, h) * 0.035);
+            const textY = h - padding - Math.max(4, h * 0.012) - Math.min(w, h) * 0.03 - fontSize * 0.5;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.font = fontSize + 'px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            const progress = progressValue.value;
+            const currentTime = formatTime(progress * 0.6);
+            const totalTime = '0:60';
+
+            ctx.fillText(currentTime + ' / ' + totalTime, padding, textY);
+        }
+
+        function drawViewers(w, h) {
+            const padding = Math.min(w, h) * 0.04;
+            const fontSize = Math.max(12, Math.min(w, h) * 0.035);
+            const textY = h - padding - Math.max(4, h * 0.012) - Math.min(w, h) * 0.03 - fontSize * 0.5;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.font = fontSize + 'px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+
+            const viewers = Math.floor(Math.random() * 5000) + 100;
+            ctx.fillText(String.fromCharCode(128065) + ' ' + viewers.toLocaleString(), w - padding, textY);
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return m + ':' + (s < 10 ? '0' : '') + s;
+        }
+
+        function roundRect(ctx, x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+        }
+
+        // Event listeners for controls
+        function addControlListener(el) {
+            el.addEventListener('input', function() {
+                updateLabels();
+                drawCanvas();
+            });
+            el.addEventListener('change', function() {
+                updateLabels();
+                drawCanvas();
+            });
+        }
+
+        function updateLabels() {
+            progressLabel.textContent = progressValue.value;
+            playSizeLabel.textContent = playSize.value;
+            opacityLabel.textContent = overlayOpacity.value;
+        }
+
+        addControlListener(showLive);
+        addControlListener(showPlay);
+        addControlListener(showProgress);
+        addControlListener(showDuration);
+        addControlListener(showViewers);
+        addControlListener(progressValue);
+        addControlListener(playSize);
+        addControlListener(overlayOpacity);
+        addControlListener(progressColor);
+
+        // Animate LIVE badge
+        function animate() {
+            if (currentImage && showLive.checked) {
+                drawCanvas();
+            }
+            animationFrameId = requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Download
+        downloadBtn.addEventListener('click', function() {
+            if (!currentImage) return;
+            const link = document.createElement('a');
+            link.download = 'facebook-live-preview.png';
+            link.href = canvas.toDataURL('image/png', 1.0);
+            link.click();
+        });
+    </script>
+</body>
+</html>
