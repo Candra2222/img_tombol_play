@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Live Preview Template Maker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #1877f2, #42b72a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        header p {
+            color: #a0aec0;
+            font-size: 1.05rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel h2 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel h2 .icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #1877f2, #166fe5);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .upload-area {
+            border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 50px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: #1877f2;
+            background: rgba(24, 119, 242, 0.05);
+        }
+
+        .upload-area.dragover {
+            border-color: #42b72a;
+            background: rgba(66, 183, 42, 0.1);
+        }
+
+        .upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.7;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            color: #e2e8f0;
+        }
+
+        .upload-hint {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-top: 8px;
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        .control-group {
+            margin-bottom: 18px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #1877f2;
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+
+        .control-group input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 26px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider:before {
+            content: "";
+            position: absolute;
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: #1877f2;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+        }
+
+        .preview-container {
+            position: relative;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #previewCanvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .placeholder-text {
+            color: #64748b;
+            font-size: 1rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1877f2, #166fe5);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(24, 119, 242, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #42b72a, #36a420);
+            color: white;
+            margin-top: 15px;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(66, 183, 42, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .size-info {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .preset-btn {
+            padding: 6px 14px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05);
+            color: #cbd5e1;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover, .preset-btn.active {
+            background: #1877f2;
+            border-color: #1877f2;
+            color: white;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px 0 20px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Facebook Live Preview Maker</h1>
+            <p>Buat template foto dengan tombol play & bar pemutaran untuk preview live streaming di Facebook</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="panel">
+                <h2><span class="icon">📁</span> Upload Foto</h2>
+
+                <div class="preset-buttons">
+                    <button class="preset-btn active" onclick="setRatio(1.91, this)">Facebook Post (1.91:1)</button>
+                    <button class="preset-btn" onclick="setRatio(1, this)">Square (1:1)</button>
+                    <button class="preset-btn" onclick="setRatio(0.8, this)">Portrait (4:5)</button>
+                    <button class="preset-btn" onclick="setRatio(1.77, this)">Story (9:16)</button>
+                </div>
+
+                <div class="upload-area" id="uploadArea">
+                    <input type="file" id="imageInput" accept="image/*">
+                    <div class="upload-icon">📷</div>
+                    <div class="upload-text">Klik atau seret foto ke sini</div>
+                    <div class="upload-hint">JPG, PNG, WEBP (Maks 10MB)</div>
+                </div>
+
+                <div class="controls">
+                    <div class="control-group">
+                        <label>⚙️ Pengaturan Overlay</label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <span>Tampilkan Badge LIVE</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showLive" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <span>Tampilkan Tombol Play</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showPlay" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <span>Tampilkan Progress Bar</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showProgress" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <span>Tampilkan Durasi</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showDuration" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <span>Tampilkan Viewer Count</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showViewers">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Progress (%)</label>
+                        <input type="range" id="progressValue" min="0" max="100" value="35">
+                    </div>
+
+                    <div class="control-group">
+                        <label>Ukuran Tombol Play</label>
+                        <input type="range" id="playSize" min="40" max="120" value="70">
+                    </div>
+
+                    <div class="control-group">
+                        <label>Opacity Overlay</label>
+                        <input type="range" id="overlayOpacity" min="0" max="80" value="25">
+                    </div>
+
+                    <div class="control-group">
+                        <label>Warna Progress Bar</label>
+                        <input type="color" id="progressColor" value="#1877f2">
+                    </div>
+                </div>
+
+                <button class="btn btn-success" id="downloadBtn" disabled>
+                    💾 Download Hasil
+                </button>
+            </div>
+
+            <div class="panel">
+                <h2><span class="icon">👁️</span> Preview</h2>
+                <div class="preview-container" id="previewContainer">
+                    <span class="placeholder-text">Upload foto untuk melihat preview</span>
+                    <canvas id="previewCanvas" style="display:none;"></canvas>
+                </div>
+                <div class="size-info" id="sizeInfo"></div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>💡 Tip: Gunakan rasio 1.91:1 untuk postingan Facebook feed yang optimal</p>
+        </div>
+    </div>
+
+    <script>
+        let currentImage = null;
+        let targetRatio = 1.91; // default Facebook post
+
+        const imageInput = document.getElementById('imageInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const canvas = document.getElementById('previewCanvas');
+        const ctx = canvas.getContext('2d');
+        const previewContainer = document.getElementById('previewContainer');
+        const placeholderText = document.querySelector('.placeholder-text');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const sizeInfo = document.getElementById('sizeInfo');
+
+        // Controls
+        const showLive = document.getElementById('showLive');
+        const showPlay = document.getElementById('showPlay');
+        const showProgress = document.getElementById('showProgress');
+        const showDuration = document.getElementById('showDuration');
+        const showViewers = document.getElementById('showViewers');
+        const progressValue = document.getElementById('progressValue');
+        const playSize = document.getElementById('playSize');
+        const overlayOpacity = document.getElementById('overlayOpacity');
+        const progressColor = document.getElementById('progressColor');
+
+        function setRatio(ratio, btn) {
+            targetRatio = ratio;
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (currentImage) drawCanvas();
+        }
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleImage(file);
+            }
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                handleImage(e.target.files[0]);
+            }
+        });
+
+        function handleImage(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentImage = new Image();
+                currentImage.onload = () => {
+                    placeholderText.style.display = 'none';
+                    canvas.style.display = 'block';
+                    downloadBtn.disabled = false;
+                    drawCanvas();
+                };
+                currentImage.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function drawCanvas() {
+            if (!currentImage) return;
+
+            const imgW = currentImage.width;
+            const imgH = currentImage.height;
+            const imgRatio = imgW / imgH;
+
+            let canvasW, canvasH;
+
+            if (imgRatio > targetRatio) {
+                canvasW = imgW;
+                canvasH = imgW / targetRatio;
+            } else {
+                canvasH = imgH;
+                canvasW = imgH * targetRatio;
+            }
+
+            canvas.width = canvasW;
+            canvas.height = canvasH;
+
+            // Fill background
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvasW, canvasH);
+
+            // Draw image centered and cover
+            const scale = Math.max(canvasW / imgW, canvasH / imgH);
+            const drawW = imgW * scale;
+            const drawH = imgH * scale;
+            const offsetX = (canvasW - drawW) / 2;
+            const offsetY = (canvasH - drawH) / 2;
+
+            ctx.drawImage(currentImage, offsetX, offsetY, drawW, drawH);
+
+            // Dark overlay
+            const opacity = overlayOpacity.value / 100;
+            ctx.fillStyle = `rgba(0, 0, 0, ${opacity})`;
+            ctx.fillRect(0, 0, canvasW, canvasH);
+
+            // LIVE badge
+            if (showLive.checked) {
+                drawLiveBadge(canvasW, canvasH);
+            }
+
+            // Play button
+            if (showPlay.checked) {
+                drawPlayButton(canvasW, canvasH);
+            }
+
+            // Progress bar
+            if (showProgress.checked) {
+                drawProgressBar(canvasW, canvasH);
+            }
+
+            // Duration
+            if (showDuration.checked) {
+                drawDuration(canvasW, canvasH);
+            }
+
+            // Viewers
+            if (showViewers.checked) {
+                drawViewers(canvasW, canvasH);
+            }
+
+            sizeInfo.textContent = `Ukuran: ${Math.round(canvasW)} x ${Math.round(canvasH)} px`;
+        }
+
+        function drawLiveBadge(w, h) {
+            const padding = Math.min(w, h) * 0.04;
+            const badgeW = Math.min(w * 0.18, 90);
+            const badgeH = Math.min(h * 0.06, 28);
+            const x = padding;
+            const y = padding;
+
+            // Badge background
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.9)';
+            roundRect(ctx, x, y, badgeW, badgeH, 4);
+            ctx.fill();
+
+            // Pulsing dot
+            const time = Date.now() / 1000;
+            const pulse = Math.sin(time * 3) * 0.3 + 0.7;
+            ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
+            ctx.beginPath();
+            ctx.arc(x + badgeH * 0.5, y + badgeH * 0.5, badgeH * 0.18, 0, Math.PI * 2);
+            ctx.fill();
+
+            // LIVE text
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${badgeH * 0.5}px -apple-system, BlinkMacSystemFont, sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('LIVE', x + badgeH * 0.85, y + badgeH * 0.52);
+        }
+
+        function drawPlayButton(w, h) {
+            const size = parseInt(playSize.value);
+            const x = w / 2;
+            const y = h / 2;
+
+            // Outer circle with shadow
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.beginPath();
+            ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+
+            // Play triangle
+            ctx.fillStyle = '#1a1a2e';
+            const triSize = size * 0.28;
+            ctx.beginPath();
+            ctx.moveTo(x - triSize * 0.3, y - triSize * 0.6);
+            ctx.lineTo(x - triSize * 0.3, y + triSize * 0.6);
+            ctx.lineTo(x + triSize * 0.55, y);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawProgressBar(w, h) {
+            const barHeight = Math.max(4, h * 0.012);
+            const barY = h - barHeight - Math.min(w, h) * 0.03;
+            const padding = Math.min(w, h) * 0.04;
+            const barWidth = w - paddin
